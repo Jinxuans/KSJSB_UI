@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快手极速版管理界面</title>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- Socket.IO Client -->
+    <script src="https://unpkg.com/socket.io-client@4/dist/socket.io.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .log-line {
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        
+        .log-error { color: #f56565; }
+        .log-warn { color: #ed8936; }
+        .log-success { color: #48bb78; }
+        .log-info { color: #4299e1; }
+        
+        /* 移动端响应式布局 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .status-card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .header {
+                padding: 16px 12px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header p {
+                font-size: 0.8rem;
+            }
+            
+            .log-container {
+                height: 250px;
+                padding: 12px;
+                font-size: 12px;
+            }
+            
+            /* 优化统计卡片在移动端的显示 */
+            .el-row {
+                margin: 0 !important;
+            }
+            
+            .el-col {
+                padding: 0 6px !important;
+            }
+            
+            /* 移动端表格优化 */
+            .el-table {
+                font-size: 12px;
+            }
+            
+            .el-table th,
+            .el-table td {
+                padding: 8px 4px;
+            }
+            
+            /* 移动端按钮优化 */
+            .el-button {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 36px;
+                border-radius: 6px;
+            }
+            
+            .el-button--small {
+                padding: 6px 10px;
+                font-size: 12px;
+                min-height: 32px;
+            }
+            
+            /* 移动端表单优化 */
+            .el-form-item__label {
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            
+            .el-input__wrapper {
+                min-height: 36px;
+            }
+            
+            .el-textarea__inner {
+                font-size: 13px;
+            }
+            
+            /* 移动端对话框优化 */
+            .el-dialog {
+                width: 95% !important;
+                margin: 0 auto;
+                max-width: 500px;
+            }
+            
+            .el-dialog__body {
+                padding: 16px 20px;
+            }
+            
+            /* 移动端表单标签位置调整 */
+            .el-form--label-top .el-form-item__label {
+                padding-bottom: 4px;
+                line-height: 1.2;
+            }
+            
+            /* 移动端标签页优化 */
+            .el-tabs__item {
+                padding: 0 12px;
+                font-size: 13px;
+            }
+            
+            /* 移动端统计数字优化 */
+            .el-statistic__content {
+                font-size: 1.5rem !important;
+            }
+            
+            .el-statistic__head {
+                font-size: 12px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+            }
+            
+            .status-card {
+                padding: 12px;
+                margin-bottom: 8px;
+            }
+            
+            .header {
+                padding: 12px 8px;
+            }
+            
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .log-container {
+                height: 200px;
+                padding: 8px;
+                font-size: 11px;
+            }
+            
+            .el-col {
+                padding: 0 3px !important;
+            }
+            
+            .el-button {
+                padding: 6px 8px;
+                font-size: 12px;
+                min-height: 32px;
+            }
+            
+            .el-button--small {
+                padding: 4px 6px;
+                font-size: 11px;
+                min-height: 28px;
+            }
+        }
+        
+        /* 触摸友好的交互元素 */
+        .el-button,
+        .el-table__row,
+        .el-tabs__item {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 备注列强调样式 */
+        .el-table th.remark-column {
+            background: linear-gradient(135deg, #409EFF20 0%, #67C23A20 100%) !important;
+            position: relative;
+        }
+        
+        .el-table th.remark-column::before {
+            content: "📝";
+            margin-right: 4px;
+        }
+        
+        /* 备注标签动画效果 */
+        .remark-tag {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .remark-tag:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4) !important;
+        }
+        
+        /* 移动端专用样式 */
+        .mobile-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .mobile-button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .mobile-button-group .el-button {
+            flex: 1;
+            min-width: 80px;
+        }
+        
+        .desktop-button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .desktop-button-group .el-button {
+            min-width: 100px;
+        }
+        
+        /* 移动端表格卡片化 */
+        @media (max-width: 768px) {
+            .mobile-table-card {
+                display: none;
+            }
+            
+            .mobile-card-view {
+                display: block;
+            }
+            
+            .account-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 8px;
+            }
+            
+            .account-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            .account-card-content {
+                font-size: 12px;
+                line-height: 1.4;
+            }
+            
+            .account-card-content > div {
+                margin-bottom: 4px;
+            }
+            
+            .account-card-actions {
+                margin-top: 8px;
+                display: flex;
+                gap: 8px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-table-card {
+                display: table;
+            }
+            
+            .mobile-card-view {
+                display: none;
+            }
+            
+            /* 桌面端对话框优化 */
+            .el-dialog {
+                margin-top: 8vh !important;
+                margin-bottom: 8vh !important;
+                max-height: 84vh;
+                border-radius: 12px;
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+            }
+            
+            .el-dialog__header {
+                padding: 24px 24px 16px 24px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            
+            .el-dialog__body {
+                padding: 24px;
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+            
+            .el-dialog__footer {
+                padding: 16px 24px 24px 24px;
+                border-top: 1px solid #f0f0f0;
+                background-color: #fafafa;
+            }
+            
+            /* 桌面端表单优化 */
+            .el-form-item {
+                margin-bottom: 22px;
+            }
+            
+            .el-form-item__label {
+                font-weight: 500;
+                color: #333;
+            }
+            
+            .el-input__wrapper,
+            .el-textarea__inner {
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+            
+            .el-input__wrapper:hover,
+            .el-textarea__inner:hover {
+                border-color: #c0c4cc;
+            }
+            
+            /* 桌面端按钮优化 */
+            .desktop-button-group .el-button {
+                padding: 10px 24px;
+                font-weight: 500;
+                border-radius: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>🚀 快手极速版管理界面</h1>
+            <p>账号管理 | 配置管理 | 脚本执行</p>
+            <div style="margin-top: 10px;">
+                <el-tag 
+                    :type="networkStatus === 'connected' ? 'success' : networkStatus === 'connecting' ? 'info' : networkStatus === 'disconnected' ? 'warning' : 'danger'"
+                    size="small"
+                    style="font-size: 12px;">
+                    {{ networkStatus === 'connected' ? '🟢 已连接' : networkStatus === 'connecting' ? '🟡 连接中' : networkStatus === 'disconnected' ? '🟠 已断开' : '🔴 连接错误' }}
+                </el-tag>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- 状态卡片 -->
+            <div class="status-card">
+                <el-row :gutter="20">
+                    <el-col :span="6">
+                        <el-statistic title="账号总数" :value="accounts.length" />
+                    </el-col>
+                    <el-col :span="6">
+                        <el-statistic title="脚本状态" :value="scriptStatus" />
+                    </el-col>
+                    <el-col :span="6">
+                        <el-statistic title="运行时间" :value="runningTime" suffix="秒" />
+                    </el-col>
+                    <el-col :span="6">
+                        <el-button 
+                            type="primary" 
+                            :loading="isRunning" 
+                            @click="runScript"
+                            :disabled="accounts.length === 0"
+                            style="width: 100%;">
+                            {{ isRunning ? '运行中...' : '开始执行' }}
+                        </el-button>
+                    </el-col>
+                </el-row>
+            </div>
+
+            <!-- 标签页 -->
+            <el-tabs v-model="activeTab" type="card">
+                <!-- 账号管理 -->
+                <el-tab-pane label="账号管理" name="accounts">
+                    <div class="status-card">
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <h3 style="margin: 0;">账号列表 ({{ accounts.length }} 个)</h3>
+                                <div class="mobile-button-group">
+                                <el-button type="primary" @click="showAddAccountDialog">
+                                    添加账号
+                                </el-button>
+                                <el-button type="info" @click="importAccounts">
+                                    导入JSON
+                                </el-button>
+                                <el-button type="success" @click="exportAccounts">
+                                    导出JSON
+                                </el-button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 桌面端表格视图 -->
+                        <el-table :data="accounts" style="width: 100%" stripe class="mobile-table-card">
+                            <el-table-column type="index" label="#" width="60" />
+                            <el-table-column prop="remark" label="备注" width="150" show-overflow-tooltip class-name="remark-column">
+                                <template #default="scope">
+                                    <el-tag v-if="scope.row.remark" type="primary" size="default" 
+                                        class="remark-tag"
+                                        style="font-weight: bold; font-size: 13px; padding: 4px 12px; border-radius: 16px;">
+                                        📝 {{ scope.row.remark }}
+                                    </el-tag>
+                                    <el-tag v-else type="info" size="small" style="color: #999; background: #f5f5f5; border: 1px dashed #ddd;">
+                                        无备注
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="salt" label="Salt" width="150" show-overflow-tooltip>
+                                <template #default="scope">
+                                    <span style="font-family: monospace; font-size: 13px; font-weight: 500;">{{ scope.row.salt }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="cookie" label="Cookie" min-width="200" show-overflow-tooltip>
+                                <template #default="scope">
+                                    <span style="font-family: monospace; font-size: 12px;">{{ scope.row.cookie }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="proxy" label="代理" width="150" show-overflow-tooltip>
+                                <template #default="scope">
+                                    <el-tag v-if="scope.row.proxy" size="small">{{ scope.row.proxy }}</el-tag>
+                                    <span v-else style="color: #999;">无代理</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="200" fixed="right">
+                                <template #default="scope">
+                                    <el-button type="primary" size="small" @click="editAccount(scope.$index)" style="margin-right: 8px;">
+                                        编辑
+                                    </el-button>
+                                    <el-button type="danger" size="small" @click="deleteAccount(scope.$index)">
+                                        删除
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <!-- 移动端卡片视图 -->
+                        <div class="mobile-card-view">
+                            <div v-if="accounts.length === 0" style="text-align: center; padding: 40px; color: #999;">
+                                暂无账号数据
+                            </div>
+                            <div v-for="(account, index) in accounts" :key="index" class="account-card">
+                                <div class="account-card-header">
+                                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                        <span style="font-weight: 600; color: #333; font-size: 14px;">#{{ index + 1 }}</span>
+                                        <el-tag v-if="account.remark" type="primary" size="default" 
+                                            class="remark-tag"
+                                            style="font-weight: bold; font-size: 13px; padding: 6px 12px; border-radius: 20px; background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%); border: none; color: white; box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);">
+                                            📝 {{ account.remark }}
+                                        </el-tag>
+                                        <el-tag v-else type="info" size="small" 
+                                            style="color: #999; background: #f5f5f5; border: 1px dashed #ddd; font-style: italic;">
+                                            无备注
+                                        </el-tag>
+                                    </div>
+                                </div>
+                                <div class="account-card-content">
+                                    <div><strong>Salt:</strong> <span style="font-family: monospace;">{{ account.salt }}</span></div>
+                                    <div style="margin: 8px 0;">
+                                        <strong>Cookie:</strong>
+                                        <div style="font-family: monospace; background: #f8f9fa; padding: 6px; border-radius: 4px; margin-top: 4px; word-break: break-all; max-height: 60px; overflow-y: auto;">
+                                            {{ account.cookie }}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <strong>代理:</strong> 
+                                        <el-tag v-if="account.proxy" size="small" style="margin-left: 4px;">{{ account.proxy }}</el-tag>
+                                        <span v-else style="color: #999;">无代理</span>
+                                    </div>
+                                </div>
+                                <div class="account-card-actions">
+                                    <el-button type="primary" size="small" @click="editAccount(index)" style="flex: 1;">
+                                        编辑
+                                    </el-button>
+                                    <el-button type="danger" size="small" @click="deleteAccount(index)" style="flex: 1;">
+                                        删除
+                                    </el-button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </el-tab-pane>
+
+                <!-- 配置管理 -->
+                <el-tab-pane label="配置管理" name="config">
+                    <div class="status-card">
+                        <h3>脚本配置</h3>
+                        <el-form :model="config" label-width="150px">
+                            <el-form-item label="卡密(LX_KM)">
+                                <el-input v-model="config.LX_KM" placeholder="请输入卡密" />
+                            </el-form-item>
+                            <!-- <el-form-item label="优化模式(LX_YH)">
+                                <el-switch v-model="config.LX_YH" />
+                            </el-form-item>
+                            <el-form-item label="开发模式">
+                                <el-switch v-model="config.DEV_MODE" />
+                            </el-form-item> -->
+                            <el-form-item label="任务黑名单">
+                                <el-input v-model="config.LX_TASK_BLACKLIST" placeholder="例如: sign,box,look,food" />
+                            </el-form-item>
+                            <el-form-item label="并发数量">
+                                <el-input-number v-model="config.MAX_CONCURRENCY" :min="1" :max="20" />
+                            </el-form-item>
+                            <el-form-item label="提现时间(小时)">
+                                <el-input-number v-model="config.WITHDRAW_HOUR" :min="0" :max="23" />
+                            </el-form-item>
+                            <el-form-item label="提现金额">
+                                <el-input-number v-model="config.WITHDRAW_AMOUNT" :min="0" :precision="2" />
+                            </el-form-item>
+                            <el-form-item label="金币阈值">
+                                <el-input-number v-model="config.COIN_THRESHOLD" :min="0" />
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveConfig">保存配置</el-button>
+                                <el-button @click="loadConfig">重新加载</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                </el-tab-pane>
+
+                <!-- 日志查看 -->
+                <el-tab-pane label="执行日志" name="logs">
+                    <div class="status-card">
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <h3 style="margin: 0;">实时日志</h3>
+                                <div class="mobile-button-group">
+                                <el-button @click="clearLogs">清空日志</el-button>
+                                <el-button @click="testScript" type="success" :disabled="isRunning">测试日志</el-button>
+                                <el-button @click="stopScript" type="danger" :disabled="!isRunning">停止脚本</el-button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="log-container" ref="logContainer">
+                            <div v-for="(log, index) in logs" :key="index" class="log-line" :class="getLogClass(log)">
+                                {{ log }}
+                            </div>
+                        </div>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+        </div>
+
+        <!-- 添加/编辑账号对话框 -->
+        <el-dialog 
+            v-model="accountDialogVisible" 
+            :title="editingIndex >= 0 ? '编辑账号' : '添加账号'" 
+            :width="isMobile ? '95%' : '650px'"
+            :fullscreen="isMobile"
+            :show-close="true"
+            center>
+            <el-form 
+                :model="currentAccount" 
+                :label-width="isMobile ? '60px' : '100px'" 
+                :rules="accountRules" 
+                ref="accountForm"
+                :label-position="isMobile ? 'top' : 'right'">
+                <el-form-item label="📝 备注" prop="remark">
+                    <el-input 
+                        v-model="currentAccount.remark" 
+                        placeholder="请输入账号备注（如：主账号、测试账号等）"
+                        clearable 
+                        style="font-size: 14px;"
+                        prefix-icon="Edit" />
+                    <div style="font-size: 12px; color: #666; margin-top: 5px; display: flex; align-items: center; gap: 4px;">
+                        <i class="el-icon-info" style="color: #409EFF;"></i>
+                        <span>💡 建议添加备注以便于区分不同账号（如：主账号、小号、测试账号等）</span>
+                    </div>
+                </el-form-item>
+                <el-form-item label="Salt *" prop="salt" required>
+                    <el-input 
+                        v-model="currentAccount.salt" 
+                        placeholder="请输入salt"
+                        clearable />
+                </el-form-item>
+                <el-form-item label="Cookie *" prop="cookie" required>
+                    <el-input 
+                        v-model="currentAccount.cookie" 
+                        type="textarea" 
+                        :rows="isMobile ? 3 : 5" 
+                        placeholder="请输入cookie"
+                        :autosize="{ minRows: 3, maxRows: 8 }"
+                        resize="vertical" />
+                </el-form-item>
+                <el-form-item label="代理" prop="proxy">
+                    <el-input 
+                        v-model="currentAccount.proxy" 
+                        placeholder="例如：127.0.0.1:1080 或 user:pass@host:port"
+                        clearable />
+                    <div style="font-size: 12px; color: #999; margin-top: 5px;">
+                        <i class="el-icon-info"></i>
+                        可选配置，支持HTTP/HTTPS/SOCKS4/SOCKS5代理
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <div :class="isMobile ? 'mobile-button-group' : 'desktop-button-group'" style="width: 100%;">
+                    <el-button @click="accountDialogVisible = false" size="default">取消</el-button>
+                    <el-button type="primary" @click="saveAccount" size="default">
+                        {{ editingIndex >= 0 ? '更新账号' : '添加账号' }}
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
+
+        <!-- 导入对话框 -->
+        <el-dialog 
+            v-model="importDialogVisible" 
+            title="批量导入账号" 
+            :width="isMobile ? '95%' : '750px'"
+            :fullscreen="isMobile"
+            center>
+            <div style="margin-bottom: 20px;">
+                <el-alert type="info" :closable="false">
+                    <template #title>
+                        <i class="el-icon-document"></i>
+                        <strong>支持的导入格式</strong>
+                    </template>
+                    <div style="margin-top: 12px; font-size: 13px; line-height: 1.6;">
+                        <div style="margin-bottom: 8px;">
+                            <strong>1. JSON格式：</strong>
+                            <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px;">
+                                [{"salt":"xxx","cookie":"xxx","proxy":"xxx","remark":"xxx"}]
+                            </code>
+                        </div>
+                        <div>
+                            <strong>2. 文本格式：</strong> 一行一个账号，字段用 <code>#</code> 分隔
+                            <div style="margin-left: 16px; margin-top: 4px; font-size: 12px;">
+                                <div>格式：<code>salt#cookie#proxy#备注</code></div>
+                                <div style="color: #666;">示例：<code>abc123#cookie_data_here#127.0.0.1:1080#主账号</code></div>
+                            </div>
+                        </div>
+                    </div>
+                </el-alert>
+            </div>
+            <el-input 
+                v-model="importData" 
+                type="textarea" 
+                :rows="isMobile ? 8 : 14" 
+                placeholder="请粘贴账号数据..."
+                :autosize="{ minRows: 8, maxRows: 20 }"
+                resize="vertical"
+                style="font-family: 'Consolas', 'Monaco', 'Courier New', monospace;" />
+            <template #footer>
+                <div :class="isMobile ? 'mobile-button-group' : 'desktop-button-group'" style="width: 100%;">
+                    <el-button @click="importDialogVisible = false" size="default">取消</el-button>
+                    <el-button type="primary" @click="doImportAccounts" size="default">
+                        <i class="el-icon-upload"></i>
+                        开始导入
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        createApp({
+            data() {
+                return {
+                    activeTab: 'accounts',
+                    accounts: [],
+                    config: {
+                        LX_KM: '',
+                        LX_YH: false,
+                        DEV_MODE: false,
+                        LX_TASK_BLACKLIST: '',
+                        MAX_CONCURRENCY: 5,
+                        WITHDRAW_HOUR: null,
+                        WITHDRAW_AMOUNT: null,
+                        COIN_THRESHOLD: null
+                    },
+                    logs: [],
+                    isRunning: false,
+                    scriptStatus: '待运行',
+                    runningTime: 0,
+                    timer: null,
+                    startTime: null,
+                    
+                    // 对话框相关
+                    accountDialogVisible: false,
+                    importDialogVisible: false,
+                    editingIndex: -1,
+                    currentAccount: {
+                        salt: '',
+                        cookie: '',
+                        proxy: '',
+                        remark: ''
+                    },
+                    importData: '',
+                    
+                    // 表单验证规则
+                    accountRules: {
+                        salt: [
+                            { required: true, message: 'Salt不能为空', trigger: 'blur' }
+                        ],
+                        cookie: [
+                            { required: true, message: 'Cookie不能为空', trigger: 'blur' }
+                        ]
+                    },
+                    
+                    // Socket.IO相关
+                    socket: null,
+                    
+                    // 网络状态
+                    networkStatus: 'connecting' // connecting, connected, disconnected, error
+                };
+            },
+            computed: {
+                // 检测是否为移动端
+                isMobile() {
+                    return window.innerWidth <= 768;
+                }
+            },
+            mounted() {
+                this.loadAccounts();
+                this.loadConfig();
+                this.connectWebSocket();
+                this.checkStatus(); // 初始状态检查
+                
+                // 定期检查状态同步
+                this.statusCheckInterval = setInterval(() => {
+                    this.checkStatus();
+                }, 5000); // 每5秒检查一次
+                
+                // 监听窗口大小变化
+                window.addEventListener('resize', this.handleResize);
+            },
+            beforeUnmount() {
+                if (this.socket) {
+                    this.socket.disconnect();
+                }
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+                if (this.statusCheckInterval) {
+                    clearInterval(this.statusCheckInterval);
+                }
+                window.removeEventListener('resize', this.handleResize);
+            },
+            methods: {
+                // 处理窗口大小变化
+                handleResize() {
+                    // 强制重新计算 computed 属性
+                    this.$forceUpdate();
+                },
+                
+                // 检查脚本状态
+                async checkStatus() {
+                    try {
+                        const response = await axios.get('/api/status');
+                        const statusData = response.data;
+                        
+                        // 同步状态
+                        if (statusData.status !== this.scriptStatus) {
+                            console.log(`状态同步: ${this.scriptStatus} -> ${statusData.status}`);
+                            this.scriptStatus = statusData.status;
+                        }
+                        
+                        // 同步运行状态
+                        if (statusData.is_running !== this.isRunning) {
+                            console.log(`运行状态同步: ${this.isRunning} -> ${statusData.is_running}`);
+                            this.isRunning = statusData.is_running;
+                            
+                            if (!statusData.is_running && this.timer) {
+                                this.stopTimer();
+                            } else if (statusData.is_running && !this.timer) {
+                                this.startTimer();
+                            }
+                        }
+                    } catch (error) {
+                        // 静默处理状态检查错误，避免干扰用户
+                        console.error('状态检查失败:', error);
+                    }
+                },
+                
+                // 通用API错误处理方法
+                handleApiError(error, operation) {
+                    let errorMessage = operation || '操作失败';
+                    
+                    if (error.response) {
+                        // 服务器返回了错误响应
+                        const status = error.response.status;
+                        const data = error.response.data;
+                        console.log('HTTP错误响应:', { status, data, operation });
+                        
+                        if (data && typeof data === 'object') {
+                            errorMessage += `\n状态码: ${status}`;
+                            if (data.error) {
+                                errorMessage += `\n错误: ${data.error}`;
+                            }
+                            if (data.message) {
+                                errorMessage += `\n消息: ${data.message}`;
+                            }
+                            if (data.details) {
+                                errorMessage += `\n详情: ${data.details}`;
+                            }
+                        } else if (typeof data === 'string') {
+                            errorMessage += `\n${data}`;
+                        } else {
+                            errorMessage += `\nHTTP ${status} 错误`;
+                        }
+                    } else if (error.request) {
+                        // 请求发出但没有收到响应
+                        console.log('网络错误:', error.request);
+                        errorMessage += '\n网络连接失败，请检查服务器是否正常运行';
+                    } else {
+                        // 其他错误
+                        console.log('其他错误:', error.message);
+                        errorMessage += `\n${error.message}`;
+                    }
+                    
+                    ElMessage.error(errorMessage);
+                    return errorMessage;
+                },
+                
+                // WebSocket连接
+                connectWebSocket() {
+                    // 使用Socket.IO客户端
+                    this.networkStatus = 'connecting';
+                    this.socket = io();
+                    
+                    this.socket.on('connect', () => {
+                        console.log('Socket.IO连接已建立');
+                        this.networkStatus = 'connected';
+                        this.logs.push('🔗 WebSocket连接已建立');
+                        this.$nextTick(() => {
+                            this.scrollToBottom();
+                        });
+                    });
+                    
+                    this.socket.on('log', (data) => {
+                        console.log('收到日志:', data);
+                        this.logs.push(data.message);
+                        this.$nextTick(() => {
+                            this.scrollToBottom();
+                        });
+                    });
+                    
+                    this.socket.on('status', (data) => {
+                        console.log('收到状态:', data);
+                        this.scriptStatus = data.status;
+                        
+                        // 根据状态更新运行状态
+                        if (data.status === '已完成' || data.status === '已停止' || data.status === '执行失败') {
+                            this.isRunning = false;
+                            this.stopTimer();
+                        } else if (data.status === '运行中') {
+                            this.isRunning = true;
+                            if (!this.timer) {
+                                this.startTimer();
+                            }
+                        }
+                        
+                        // 添加状态变化日志
+                        this.logs.push(`📊 状态更新: ${data.status}`);
+                        this.$nextTick(() => {
+                            this.scrollToBottom();
+                        });
+                    });
+                    
+                    this.socket.on('disconnect', () => {
+                        console.log('Socket.IO连接已断开');
+                        this.networkStatus = 'disconnected';
+                        this.logs.push('⚠️ WebSocket连接已断开，尝试重连...');
+                    });
+                    
+                    this.socket.on('connect_error', (error) => {
+                        console.error('Socket.IO连接错误:', error);
+                        this.networkStatus = 'error';
+                        this.logs.push('❌ WebSocket连接错误: ' + error.message);
+                    });
+                },
+                
+                // 账号管理
+                async loadAccounts() {
+                    try {
+                        const response = await axios.get('/api/accounts');
+                        this.accounts = response.data;
+                    } catch (error) {
+                        console.error('加载账号失败:', error);
+                        this.handleApiError(error, '加载账号失败');
+                    }
+                },
+                
+                async saveAccounts() {
+                    try {
+                        await axios.post('/api/accounts', this.accounts);
+                        ElMessage.success('账号保存成功');
+                    } catch (error) {
+                        console.error('保存账号失败:', error);
+                        this.handleApiError(error, '保存账号失败');
+                    }
+                },
+                
+                showAddAccountDialog() {
+                    this.editingIndex = -1;
+                    this.currentAccount = { salt: '', cookie: '', proxy: '', remark: '' };
+                    this.accountDialogVisible = true;
+                },
+                
+                editAccount(index) {
+                    this.editingIndex = index;
+                    this.currentAccount = { ...this.accounts[index] };
+                    this.accountDialogVisible = true;
+                },
+                
+                async saveAccount() {
+                    try {
+                        await this.$refs.accountForm.validate();
+                    
+                    if (this.editingIndex >= 0) {
+                        this.accounts[this.editingIndex] = { ...this.currentAccount };
+                    } else {
+                        this.accounts.push({ ...this.currentAccount });
+                    }
+                    
+                    await this.saveAccounts();
+                    this.accountDialogVisible = false;
+                        ElMessage.success(this.editingIndex >= 0 ? '账号更新成功' : '账号添加成功');
+                    } catch (error) {
+                        if (error.message) {
+                            ElMessage.error('保存失败: ' + error.message);
+                        }
+                        // 验证失败不显示错误消息，Element Plus会自动显示
+                    }
+                },
+                
+                async deleteAccount(index) {
+                    try {
+                        await ElMessageBox.confirm('确定要删除这个账号吗？', '确认删除');
+                        this.accounts.splice(index, 1);
+                        await this.saveAccounts();
+                        ElMessage.success('账号删除成功');
+                    } catch {
+                        // 用户取消删除
+                    }
+                },
+                
+                importAccounts() {
+                    this.importData = '';
+                    this.importDialogVisible = true;
+                },
+                
+                async doImportAccounts() {
+                    try {
+                        let newAccounts = [];
+                        
+                        // 尝试解析为JSON
+                        try {
+                            const parsed = JSON.parse(this.importData);
+                            if (Array.isArray(parsed)) {
+                                newAccounts = parsed;
+                            } else {
+                                throw new Error('不是数组格式');
+                            }
+                        } catch {
+                            // 解析为文本格式
+                            const lines = this.importData.split('\n');
+                            for (const line of lines) {
+                                const trimmed = line.trim();
+                                if (trimmed && !trimmed.startsWith('#')) {
+                                    const parts = trimmed.split('#');
+                                    if (parts.length >= 2) {
+                                        newAccounts.push({
+                                            salt: parts[0],
+                                            cookie: parts[1],
+                                            proxy: parts[2] || '',
+                                            remark: parts[3] || ''
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (newAccounts.length > 0) {
+                            this.accounts = newAccounts;
+                            await this.saveAccounts();
+                            ElMessage.success(`成功导入 ${newAccounts.length} 个账号`);
+                            this.importDialogVisible = false;
+                        } else {
+                            ElMessage.error('没有找到有效的账号数据');
+                        }
+                    } catch (error) {
+                        ElMessage.error('导入失败: ' + error.message);
+                    }
+                },
+                
+                exportAccounts() {
+                    const dataStr = JSON.stringify(this.accounts, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'accounts.json';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    ElMessage.success('账号数据已导出');
+                },
+                
+                // 配置管理
+                async loadConfig() {
+                    try {
+                        const response = await axios.get('/api/config');
+                        this.config = { ...this.config, ...response.data };
+                    } catch (error) {
+                        console.error('加载配置失败:', error);
+                        this.handleApiError(error, '加载配置失败');
+                    }
+                },
+                
+                async saveConfig() {
+                    try {
+                        await axios.post('/api/config', this.config);
+                        ElMessage.success('配置保存成功');
+                    } catch (error) {
+                        console.error('保存配置失败:', error);
+                        this.handleApiError(error, '保存配置失败');
+                    }
+                },
+                
+                // 脚本执行
+                async runScript() {
+                    try {
+                        this.isRunning = true;
+                        this.scriptStatus = '运行中';
+                        this.startTimer();
+                        this.logs = [];
+                        
+                        const response = await axios.post('/api/run');
+                        if (response.data.success) {
+                            ElMessage.success('脚本已开始执行');
+                        } else {
+                            console.log('服务器返回错误:', response.data);
+                            throw new Error(response.data.error || response.data.message || '未知错误');
+                        }
+                    } catch (error) {
+                        this.isRunning = false;
+                        this.scriptStatus = '执行失败';
+                        this.stopTimer();
+                        
+                        const errorMessage = this.handleApiError(error, '启动脚本失败');
+                        this.logs.push(`❌ ${errorMessage}`);
+                    }
+                },
+                
+                async testScript() {
+                    try {
+                        this.isRunning = true;
+                        this.scriptStatus = '运行中';
+                        this.startTimer();
+                        this.logs = [];
+                        
+                        const response = await axios.post('/api/test');
+                        if (response.data.success) {
+                            ElMessage.success('测试脚本已开始执行');
+                        } else {
+                            console.log('服务器返回错误:', response.data);
+                            throw new Error(response.data.error || response.data.message || '未知错误');
+                        }
+                    } catch (error) {
+                        this.isRunning = false;
+                        this.scriptStatus = '执行失败';
+                        this.stopTimer();
+                        
+                        const errorMessage = this.handleApiError(error, '启动测试脚本失败');
+                        this.logs.push(`❌ ${errorMessage}`);
+                    }
+                },
+                
+                async stopScript() {
+                    try {
+                        const response = await axios.post('/api/stop');
+                        
+                        // 检查响应数据
+                        if (response.data.success) {
+                            this.isRunning = false;
+                            this.scriptStatus = '已停止';
+                            this.stopTimer();
+                            ElMessage.success(response.data.message || '脚本已停止');
+                        } else {
+                            // 后端返回了错误，但HTTP状态码是200
+                            throw new Error(response.data.error || response.data.message || '停止脚本失败');
+                        }
+                    } catch (error) {
+                        console.error('停止脚本请求失败:', error);
+                        
+                        // 检查是否是HTTP 400错误（脚本未在运行）
+                        if (error.response && error.response.status === 400) {
+                            const errorData = error.response.data;
+                            if (errorData.error === '脚本未在运行') {
+                                // 脚本确实没在运行，更新状态但不显示错误
+                                this.isRunning = false;
+                                this.scriptStatus = '待运行';
+                                this.stopTimer();
+                                ElMessage.info('脚本已经停止');
+                                return;
+                            }
+                        }
+                        
+                        // 其他错误情况
+                        this.handleApiError(error, '停止脚本失败');
+                    }
+                },
+                
+                // 日志相关
+                clearLogs() {
+                    this.logs = [];
+                },
+                
+                getLogClass(log) {
+                    if (log.includes('❌') || log.includes('错误') || log.includes('失败')) {
+                        return 'log-error';
+                    } else if (log.includes('⚠️') || log.includes('警告')) {
+                        return 'log-warn';
+                    } else if (log.includes('✅') || log.includes('成功')) {
+                        return 'log-success';
+                    } else {
+                        return 'log-info';
+                    }
+                },
+                
+                scrollToBottom() {
+                    const container = this.$refs.logContainer;
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                },
+                
+                // 计时器相关
+                startTimer() {
+                    this.startTime = Date.now();
+                    this.timer = setInterval(() => {
+                        this.runningTime = Math.floor((Date.now() - this.startTime) / 1000);
+                    }, 1000);
+                },
+                
+                stopTimer() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    }
+                }
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>
