@@ -2,8 +2,9 @@ requests>=2.25.1
 urllib3>=1.26.0
 aiohttp>=3.8.0
 aiohttp-socks>=0.7.1
-PySimpleGUI==4.60.5
+PySimpleGUI>=4.60.5
 Flask>=2.0.0
 Flask-SocketIO>=5.0.0
 Flask-CORS>=3.0.0
+
 python-socketio>=5.0.0
