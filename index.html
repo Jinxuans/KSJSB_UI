@@ -243,6 +243,33 @@
             -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
         }
         
+        /* 延迟配置折叠面板样式 */
+        .el-collapse {
+            border: 1px solid #EBEEF5;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .el-collapse-item__header {
+            background-color: #F5F7FA;
+            padding: 16px 20px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .el-collapse-item__header:hover {
+            background-color: #E4E7ED;
+        }
+        
+        .el-collapse-item__wrap {
+            background-color: #FAFBFC;
+        }
+        
+        .el-collapse-item__content {
+            padding: 20px;
+            background-color: white;
+        }
+        
         /* 备注列强调样式 */
         .el-table th.remark-column {
             background: linear-gradient(135deg, #409EFF20 0%, #67C23A20 100%) !important;
@@ -584,6 +611,87 @@
                             <el-form-item label="金币阈值">
                                 <el-input-number v-model="config.COIN_THRESHOLD" :min="0" />
                             </el-form-item>
+                            
+                            <!-- 延迟配置折叠面板 -->
+                            <el-collapse v-model="activeDelayCollapse" style="margin: 20px 0;">
+                                <el-collapse-item name="delay">
+                                    <template #title>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-size: 16px;">⏱️</span>
+                                            <span style="font-weight: bold; color: #409EFF;">延迟配置 (毫秒)</span>
+                                            <el-tag size="small" type="info">可选配置</el-tag>
+                                        </div>
+                                    </template>
+                                    
+                                    <el-form :model="config" label-width="150px" style="padding: 10px 0;">
+                                        <el-form-item label="默认延迟(default)" style="margin-bottom: 8px;">
+                                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.default.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
+                                                </div>
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.default.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
+                                                </div>
+                                            </div>
+                                        </el-form-item>
+                                        
+                                        <el-form-item label="任务间隔(taskInterval)" style="margin-bottom: 8px;">
+                                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.taskInterval.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
+                                                </div>
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.taskInterval.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
+                                                </div>
+                                            </div>
+                                        </el-form-item>
+                                        
+                                        <el-form-item label="重试延迟(retry)" style="margin-bottom: 8px;">
+                                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.retry.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
+                                                </div>
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.retry.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
+                                                </div>
+                                            </div>
+                                        </el-form-item>
+                                        
+                                        <el-form-item label="长重试(longRetry)" style="margin-bottom: 8px;">
+                                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.longRetry.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
+                                                </div>
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.longRetry.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
+                                                </div>
+                                            </div>
+                                        </el-form-item>
+                                        
+                                        <el-form-item label="周期延迟(cycle)" style="margin-bottom: 8px;">
+                                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.cycle.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
+                                                </div>
+                                                <div style="flex: 1; min-width: 180px;">
+                                                    <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
+                                                    <el-input-number v-model="config.delay_config.cycle.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
+                                                </div>
+                                            </div>
+                                        </el-form-item>
+                                    </el-form>
+                                </el-collapse-item>
+                            </el-collapse>
+                            
                             <el-form-item>
                                 <el-button type="primary" @click="saveConfig">保存配置</el-button>
                                 <el-button @click="loadConfig">重新加载</el-button>
@@ -744,7 +852,14 @@
                         MAX_CONCURRENCY: 5,
                         WITHDRAW_HOUR: null,
                         WITHDRAW_AMOUNT: null,
-                        COIN_THRESHOLD: null
+                        COIN_THRESHOLD: null,
+                        delay_config: {
+                            'default': {'min': 20000, 'max': 30000},
+                            'taskInterval': {'min': 10000, 'max': 20000},
+                            'retry': {'min': 10000, 'max': 13000},
+                            'longRetry': {'min': 10000, 'max': 15000},
+                            'cycle': {'min': 10000, 'max': 15000}
+                        }
                     },
                     logs: [],
                     isRunning: false,
@@ -779,7 +894,10 @@
                     socket: null,
                     
                     // 网络状态
-                    networkStatus: 'connecting' // connecting, connected, disconnected, error
+                    networkStatus: 'connecting', // connecting, connected, disconnected, error
+                    
+                    // 折叠面板状态
+                    activeDelayCollapse: [] // 默认折叠
                 };
             },
             computed: {
@@ -1078,7 +1196,20 @@
                 async loadConfig() {
                     try {
                         const response = await axios.get('/api/config');
-                        this.config = { ...this.config, ...response.data };
+                        // 深度合并配置，特别处理delay_config
+                        const loadedConfig = response.data;
+                        this.config = { ...this.config, ...loadedConfig };
+                        
+                        // 如果服务器有delay_config，深度合并
+                        if (loadedConfig.delay_config) {
+                            this.config.delay_config = {
+                                'default': { ...this.config.delay_config.default, ...loadedConfig.delay_config.default },
+                                'taskInterval': { ...this.config.delay_config.taskInterval, ...loadedConfig.delay_config.taskInterval },
+                                'retry': { ...this.config.delay_config.retry, ...loadedConfig.delay_config.retry },
+                                'longRetry': { ...this.config.delay_config.longRetry, ...loadedConfig.delay_config.longRetry },
+                                'cycle': { ...this.config.delay_config.cycle, ...loadedConfig.delay_config.cycle }
+                            };
+                        }
                     } catch (error) {
                         console.error('加载配置失败:', error);
                         this.handleApiError(error, '加载配置失败');
