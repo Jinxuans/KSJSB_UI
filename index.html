@@ -193,6 +193,54 @@
             .el-statistic__head {
                 font-size: 12px !important;
             }
+            
+            /* 移动端配置表单优化 */
+            .status-card .el-form {
+                margin: 0 -10px;
+            }
+            
+            .status-card .el-form-item {
+                margin-bottom: 16px;
+            }
+            
+            .status-card .el-form-item__label {
+                font-size: 12px !important;
+                min-width: auto !important;
+                padding-right: 8px;
+            }
+            
+            /* 移动端数字输入框优化 */
+            .el-input-number {
+                width: 100% !important;
+            }
+            
+            .el-input-number .el-input__wrapper {
+                width: 100% !important;
+            }
+            
+            /* 移动端折叠面板优化 */
+            .el-collapse {
+                border: 1px solid #EBEEF5 !important;
+            }
+            
+            .el-collapse-item__header {
+                padding: 12px 10px !important;
+                font-size: 13px !important;
+            }
+            
+            .el-collapse-item__content {
+                padding: 10px !important;
+            }
+            
+            /* 延迟配置移动端优化 */
+            .el-collapse .el-form {
+                margin: 0 !important;
+            }
+            
+            .el-collapse .el-form-item__label {
+                font-size: 11px !important;
+                padding-bottom: 2px !important;
+            }
         }
         
         @media (max-width: 480px) {
@@ -243,7 +291,28 @@
             -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
         }
         
-        /* 延迟配置折叠面板样式 */
+        /* 服务器设置按钮样式 */
+        .header .el-button.is-circle {
+            transition: all 0.3s ease;
+            font-size: 16px;
+            width: 32px;
+            height: 32px;
+        }
+        
+        .header .el-button.is-circle:hover {
+            background: rgba(255,255,255,0.3) !important;
+            transform: rotate(90deg);
+        }
+        
+        @media (max-width: 768px) {
+            .header .el-button.is-circle {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+        }
+        
+        /* 折叠面板样式 */
         .el-collapse {
             border: 1px solid #EBEEF5;
             border-radius: 8px;
@@ -268,6 +337,37 @@
         .el-collapse-item__content {
             padding: 20px;
             background-color: white;
+        }
+        
+        /* 对话框中的折叠面板样式 */
+        .el-dialog .el-collapse {
+            border: 1px solid #E4E7ED;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .el-dialog .el-collapse-item__header {
+            background: linear-gradient(135deg, #FFF5E6 0%, #FFF9F0 100%);
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+        
+        .el-dialog .el-collapse-item__header:hover {
+            background: linear-gradient(135deg, #FFEDCC 0%, #FFF5E6 100%);
+        }
+        
+        .el-dialog .el-collapse-item__content {
+            padding: 10px 12px;
+            background: #FAFBFC;
+            overflow: visible !important;
+        }
+        
+        .el-dialog .el-collapse-item__wrap {
+            overflow: visible !important;
+        }
+        
+        /* 解析区域按钮样式强调 */
+        .el-dialog .el-collapse-item__content .el-button--primary {
+            font-weight: 600;
         }
         
         /* 备注列强调样式 */
@@ -434,13 +534,43 @@
         <div class="header">
             <h1>🚀 快手极速版管理界面</h1>
             <p>账号管理 | 配置管理 | 脚本执行</p>
-            <div style="margin-top: 10px;">
+            <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
                 <el-tag 
                     :type="networkStatus === 'connected' ? 'success' : networkStatus === 'connecting' ? 'info' : networkStatus === 'disconnected' ? 'warning' : 'danger'"
                     size="small"
                     style="font-size: 12px;">
                     {{ networkStatus === 'connected' ? '🟢 已连接' : networkStatus === 'connecting' ? '🟡 连接中' : networkStatus === 'disconnected' ? '🟠 已断开' : '🔴 连接错误' }}
                 </el-tag>
+                <el-popover placement="bottom" :width="320" trigger="click">
+                    <template #reference>
+                        <el-button 
+                            size="small" 
+                            circle
+                            style="background: rgba(255,255,255,0.2); border: none; color: white;">
+                            ⚙️
+                        </el-button>
+                    </template>
+                    <div style="padding: 8px;">
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #303133;">⚙️ 服务器设置</div>
+                            <el-input 
+                                v-model="serverUrl" 
+                                placeholder="127.0.0.1:5000"
+                                size="default"
+                                @change="saveServerUrl"
+                                style="width: 100%;">
+                                <template #prepend>http://</template>
+                            </el-input>
+                            <div style="font-size: 12px; color: #909399; margin-top: 6px;">
+                                💡 修改后需要刷新页面生效
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <el-button size="small" @click="resetServerUrl">重置</el-button>
+                            <el-button size="small" type="primary" @click="applyServerUrl">应用并刷新</el-button>
+                        </div>
+                    </div>
+                </el-popover>
             </div>
         </div>
 
@@ -586,7 +716,7 @@
                 <el-tab-pane label="配置管理" name="config">
                     <div class="status-card">
                         <h3>脚本配置</h3>
-                        <el-form :model="config" label-width="150px">
+                        <el-form :model="config" :label-width="isMobile ? '80px' : '150px'">
                             <el-form-item label="卡密(LX_KM)">
                                 <el-input v-model="config.LX_KM" placeholder="请输入卡密" />
                             </el-form-item>
@@ -623,66 +753,66 @@
                                         </div>
                                     </template>
                                     
-                                    <el-form :model="config" label-width="150px" style="padding: 10px 0;">
-                                        <el-form-item label="默认延迟(default)" style="margin-bottom: 8px;">
+                                    <el-form :model="config" :label-width="isMobile ? '0px' : '150px'" :label-position="isMobile ? 'top' : 'right'" style="padding: 10px 0;">
+                                        <el-form-item :label="isMobile ? '默认延迟' : '默认延迟(default)'" style="margin-bottom: 8px;">
                                             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.default.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
                                                 </div>
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.default.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
                                                 </div>
                                             </div>
                                         </el-form-item>
                                         
-                                        <el-form-item label="任务间隔(taskInterval)" style="margin-bottom: 8px;">
+                                        <el-form-item :label="isMobile ? '任务间隔' : '任务间隔(taskInterval)'" style="margin-bottom: 8px;">
                                             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.taskInterval.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
                                                 </div>
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.taskInterval.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
                                                 </div>
                                             </div>
                                         </el-form-item>
                                         
-                                        <el-form-item label="重试延迟(retry)" style="margin-bottom: 8px;">
+                                        <el-form-item :label="isMobile ? '重试延迟' : '重试延迟(retry)'" style="margin-bottom: 8px;">
                                             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.retry.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
                                                 </div>
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.retry.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
                                                 </div>
                                             </div>
                                         </el-form-item>
                                         
-                                        <el-form-item label="长重试(longRetry)" style="margin-bottom: 8px;">
+                                        <el-form-item :label="isMobile ? '长重试' : '长重试(longRetry)'" style="margin-bottom: 8px;">
                                             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.longRetry.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
                                                 </div>
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.longRetry.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
                                                 </div>
                                             </div>
                                         </el-form-item>
                                         
-                                        <el-form-item label="周期延迟(cycle)" style="margin-bottom: 8px;">
+                                        <el-form-item :label="isMobile ? '周期延迟' : '周期延迟(cycle)'" style="margin-bottom: 8px;">
                                             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最小值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.cycle.min" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最小值" />
                                                 </div>
-                                                <div style="flex: 1; min-width: 180px;">
+                                                <div :style="{flex: 1, minWidth: isMobile ? '120px' : '180px'}">
                                                     <div style="margin-bottom: 4px; color: #606266; font-size: 13px;">最大值(毫秒)</div>
                                                     <el-input-number v-model="config.delay_config.cycle.max" :min="0" :step="1000" :controls="false" style="width: 100%;" placeholder="最大值" />
                                                 </div>
@@ -737,6 +867,48 @@
                 :rules="accountRules" 
                 ref="accountForm"
                 :label-position="isMobile ? 'top' : 'right'">
+                
+                <!-- 一键解析区域 -->
+                <el-collapse v-model="activeParseCollapse" style="margin-bottom: 20px;">
+                    <el-collapse-item name="parse">
+                        <template #title>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px;">✨</span>
+                                <span style="font-weight: bold; color: #409EFF;">智能解析</span>
+                                <el-tag size="small" type="success">自动填充</el-tag>
+                            </div>
+                        </template>
+                        <div style="padding: 8px 0;">
+                            <div style="font-size: 12px; color: #606266; margin-bottom: 8px; padding: 6px 10px; background: #F0F9FF; border-radius: 4px; border-left: 3px solid #409EFF;">
+                                <strong>格式：</strong> <code>cookie#salt</code> 或 <code>cookie#salt#代理IP</code>
+                                <div style="margin-top: 4px; color: #67C23A; font-size: 11px;">
+                                    ✨ 粘贴后自动解析并填充表单
+                                </div>
+                            </div>
+                            <el-input 
+                                v-model="parseText" 
+                                type="textarea" 
+                                :rows="2" 
+                                placeholder="粘贴格式化内容，如：cookie内容#salt值#代理IP"
+                                @input="autoParseOnInput"
+                                resize="none"
+                                style="font-family: 'Consolas', monospace; font-size: 11px;" />
+                            <div v-if="parseStatus" :style="{
+                                marginTop: '6px',
+                                fontSize: '12px',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                background: parseStatus.type === 'success' ? '#F0F9FF' : parseStatus.type === 'error' ? '#FEF0F0' : '#FDF6EC',
+                                color: parseStatus.type === 'success' ? '#409EFF' : parseStatus.type === 'error' ? '#F56C6C' : '#E6A23C',
+                                borderLeft: '3px solid',
+                                borderLeftColor: parseStatus.type === 'success' ? '#409EFF' : parseStatus.type === 'error' ? '#F56C6C' : '#E6A23C'
+                            }">
+                                {{ parseStatus.message }}
+                            </div>
+                        </div>
+                    </el-collapse-item>
+                </el-collapse>
+                
                 <el-form-item label="📝 备注" prop="remark">
                     <el-input 
                         v-model="currentAccount.remark" 
@@ -897,7 +1069,15 @@
                     networkStatus: 'connecting', // connecting, connected, disconnected, error
                     
                     // 折叠面板状态
-                    activeDelayCollapse: [] // 默认折叠
+                    activeDelayCollapse: [], // 默认折叠
+                    activeParseCollapse: [], // 解析面板默认折叠
+                    
+                    // 服务器地址
+                    serverUrl: '',
+                    
+                    // 一键解析
+                    parseText: '',
+                    parseStatus: null // 解析状态提示
                 };
             },
             computed: {
@@ -907,6 +1087,7 @@
                 }
             },
             mounted() {
+                this.loadServerUrl(); // 加载服务器地址
                 this.loadAccounts();
                 this.loadConfig();
                 this.connectWebSocket();
@@ -933,6 +1114,54 @@
                 window.removeEventListener('resize', this.handleResize);
             },
             methods: {
+                // 服务器地址管理
+                loadServerUrl() {
+                    const savedUrl = localStorage.getItem('serverUrl');
+                    if (savedUrl) {
+                        this.serverUrl = savedUrl;
+                    } else {
+                        // 默认使用127.0.0.1:5000
+                        this.serverUrl = '127.0.0.1:5000';
+                    }
+                },
+                
+                saveServerUrl() {
+                    localStorage.setItem('serverUrl', this.serverUrl);
+                    ElMessage.success('服务器地址已保存');
+                },
+                
+                resetServerUrl() {
+                    this.serverUrl = '127.0.0.1:5000';
+                    localStorage.setItem('serverUrl', this.serverUrl);
+                    ElMessage.success('已重置为默认地址');
+                },
+                
+                applyServerUrl() {
+                    localStorage.setItem('serverUrl', this.serverUrl);
+                    ElMessage.success('正在应用新地址...');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                },
+                
+                getApiUrl(path) {
+                    // 如果serverUrl为空，使用相对路径
+                    if (!this.serverUrl || this.serverUrl.trim() === '') {
+                        return path;
+                    }
+                    // 构建完整URL
+                    let baseUrl = this.serverUrl.trim();
+                    // 如果没有协议，添加http://
+                    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+                        baseUrl = 'http://' + baseUrl;
+                    }
+                    // 移除末尾的斜杠
+                    baseUrl = baseUrl.replace(/\/$/, '');
+                    // 确保path以斜杠开头
+                    const apiPath = path.startsWith('/') ? path : '/' + path;
+                    return baseUrl + apiPath;
+                },
+                
                 // 处理窗口大小变化
                 handleResize() {
                     // 强制重新计算 computed 属性
@@ -942,7 +1171,7 @@
                 // 检查脚本状态
                 async checkStatus() {
                     try {
-                        const response = await axios.get('/api/status');
+                        const response = await axios.get(this.getApiUrl('/api/status'));
                         const statusData = response.data;
                         
                         // 同步状态
@@ -1012,7 +1241,19 @@
                 connectWebSocket() {
                     // 使用Socket.IO客户端
                     this.networkStatus = 'connecting';
-                    this.socket = io();
+                    // 构建WebSocket URL
+                    let socketUrl;
+                    if (!this.serverUrl || this.serverUrl.trim() === '') {
+                        socketUrl = undefined; // 使用当前页面
+                    } else {
+                        let url = this.serverUrl.trim();
+                        // 如果没有协议，添加http://
+                        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                            url = 'http://' + url;
+                        }
+                        socketUrl = url;
+                    }
+                    this.socket = io(socketUrl);
                     
                     this.socket.on('connect', () => {
                         console.log('Socket.IO连接已建立');
@@ -1069,7 +1310,7 @@
                 // 账号管理
                 async loadAccounts() {
                     try {
-                        const response = await axios.get('/api/accounts');
+                        const response = await axios.get(this.getApiUrl('/api/accounts'));
                         this.accounts = response.data;
                     } catch (error) {
                         console.error('加载账号失败:', error);
@@ -1079,7 +1320,7 @@
                 
                 async saveAccounts() {
                     try {
-                        await axios.post('/api/accounts', this.accounts);
+                        await axios.post(this.getApiUrl('/api/accounts'), this.accounts);
                         ElMessage.success('账号保存成功');
                     } catch (error) {
                         console.error('保存账号失败:', error);
@@ -1090,13 +1331,102 @@
                 showAddAccountDialog() {
                     this.editingIndex = -1;
                     this.currentAccount = { salt: '', cookie: '', proxy: '', remark: '' };
+                    this.parseText = ''; // 清空解析文本
+                    this.parseStatus = null; // 清空状态
+                    this.activeParseCollapse = []; // 默认折叠
                     this.accountDialogVisible = true;
                 },
                 
                 editAccount(index) {
                     this.editingIndex = index;
                     this.currentAccount = { ...this.accounts[index] };
+                    this.parseText = ''; // 清空解析文本
+                    this.parseStatus = null; // 清空状态
+                    this.activeParseCollapse = []; // 默认折叠
                     this.accountDialogVisible = true;
+                },
+                
+                // 自动解析功能
+                autoParseOnInput() {
+                    // 清除之前的状态
+                    this.parseStatus = null;
+                    
+                    // 如果输入为空，不处理
+                    if (!this.parseText || !this.parseText.trim()) {
+                        return;
+                    }
+                    
+                    const text = this.parseText.trim();
+                    
+                    // 检测是否包含#分隔符
+                    if (!text.includes('#')) {
+                        this.parseStatus = {
+                            type: 'warning',
+                            message: '⚠️ 等待输入... 格式：cookie#salt 或 cookie#salt#代理IP'
+                        };
+                        return;
+                    }
+                    
+                    try {
+                        const parts = text.split('#');
+                        
+                        if (parts.length < 2) {
+                            this.parseStatus = {
+                                type: 'error',
+                                message: '❌ 格式错误！至少需要 cookie#salt'
+                            };
+                            return;
+                        }
+                        
+                        // 解析各部分
+                        const cookie = parts[0].trim();
+                        const salt = parts[1].trim();
+                        const proxy = parts.length >= 3 ? parts[2].trim() : '';
+                        
+                        // 验证必填项
+                        if (!cookie) {
+                            this.parseStatus = {
+                                type: 'error',
+                                message: '❌ Cookie不能为空'
+                            };
+                            return;
+                        }
+                        if (!salt) {
+                            this.parseStatus = {
+                                type: 'error',
+                                message: '❌ Salt不能为空'
+                            };
+                            return;
+                        }
+                        
+                        // 填充到表单
+                        this.currentAccount.cookie = cookie;
+                        this.currentAccount.salt = salt;
+                        if (proxy) {
+                            this.currentAccount.proxy = proxy;
+                        }
+                        
+                        // 成功提示
+                        let successMsg = '✅ 解析成功！已自动填充表单';
+                        if (proxy) {
+                            successMsg += ` (含代理)`;
+                        }
+                        this.parseStatus = {
+                            type: 'success',
+                            message: successMsg
+                        };
+                        
+                        // 3秒后自动折叠
+                        setTimeout(() => {
+                            this.activeParseCollapse = [];
+                        }, 3000);
+                        
+                    } catch (error) {
+                        this.parseStatus = {
+                            type: 'error',
+                            message: '❌ 解析失败: ' + error.message
+                        };
+                    }
                 },
                 
                 async saveAccount() {
@@ -1195,7 +1525,7 @@
                 // 配置管理
                 async loadConfig() {
                     try {
-                        const response = await axios.get('/api/config');
+                        const response = await axios.get(this.getApiUrl('/api/config'));
                         // 深度合并配置，特别处理delay_config
                         const loadedConfig = response.data;
                         this.config = { ...this.config, ...loadedConfig };
@@ -1218,7 +1548,7 @@
                 
                 async saveConfig() {
                     try {
-                        await axios.post('/api/config', this.config);
+                        await axios.post(this.getApiUrl('/api/config'), this.config);
                         ElMessage.success('配置保存成功');
                     } catch (error) {
                         console.error('保存配置失败:', error);
@@ -1234,7 +1564,7 @@
                         this.startTimer();
                         this.logs = [];
                         
-                        const response = await axios.post('/api/run');
+                        const response = await axios.post(this.getApiUrl('/api/run'));
                         if (response.data.success) {
                             ElMessage.success('脚本已开始执行');
                         } else {
@@ -1258,7 +1588,7 @@
                         this.startTimer();
                         this.logs = [];
                         
-                        const response = await axios.post('/api/test');
+                        const response = await axios.post(this.getApiUrl('/api/test'));
                         if (response.data.success) {
                             ElMessage.success('测试脚本已开始执行');
                         } else {
@@ -1277,7 +1607,7 @@
                 
                 async stopScript() {
                     try {
-                        const response = await axios.post('/api/stop');
+                        const response = await axios.post(this.getApiUrl('/api/stop'));
                         
                         // 检查响应数据
                         if (response.data.success) {

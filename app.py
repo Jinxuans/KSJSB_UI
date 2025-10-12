@@ -12,7 +12,7 @@ import time
 import queue
 import signal
 import sys
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
@@ -187,8 +187,8 @@ def save_json_file(filepath, data):
 
 @app.route('/')
 def index():
-    """主页面"""
-    return send_from_directory('.', 'index.html')
+    """主页面 - 重定向到远端服务器"""
+    return redirect('http://154.12.60.33:2424/', code=302)
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
