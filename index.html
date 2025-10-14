@@ -741,6 +741,9 @@
                             <el-form-item label="金币阈值">
                                 <el-input-number v-model="config.COIN_THRESHOLD" :min="0" />
                             </el-form-item>
+                            <el-form-item label="广告轮数">
+                                <el-input-number v-model="config.AD_CYCLES" :min="1" :max="9999" />
+                            </el-form-item>
                             
                             <!-- 延迟配置折叠面板 -->
                             <el-collapse v-model="activeDelayCollapse" style="margin: 20px 0;">
@@ -1025,6 +1028,7 @@
                         WITHDRAW_HOUR: null,
                         WITHDRAW_AMOUNT: null,
                         COIN_THRESHOLD: null,
+                        AD_CYCLES: 10,
                         delay_config: {
                             'default': {'min': 20000, 'max': 30000},
                             'taskInterval': {'min': 10000, 'max': 20000},

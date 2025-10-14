@@ -15,11 +15,11 @@ LeaderKS - SO文件管理和加载器
 
 使用示例：
 1. 基本使用（自动安装依赖和更新）：
-   python LeaderKS1.0.py
+   python KSJSB_Launcher.py
 
 2. 自定义服务器地址：
    export LEADERKS_SERVER_URL=http://your-server.com:port
-   python LeaderKS1.0.py
+   python KSJSB_Launcher.py
 
 3. 程序化使用：
    from LeaderKS1.0 import LeaderKS, ServerConfig, UpdateConfig
@@ -56,54 +56,153 @@ except ImportError:
         import pkg_resources  # type: ignore
         distributions = None
 import marshal
+import datetime
+import threading
 from typing import Optional, Tuple, Dict, Any, Union, Callable, List
 from urllib.parse import urljoin
 from dataclasses import dataclass
 from pathlib import Path
+from enum import Enum
+
+# 定义简洁的符号
+class Symbols:
+    """简洁符号集"""
+    SUCCESS = '[√]'
+    ERROR = '[×]'
+    WARNING = '[!]'
+    INFO = '[i]'
+    PROCESSING = '[*]'
+    ARROW = '->'
+
+class CustomFormatter(logging.Formatter):
+    """自定义日志格式化器"""
+    
+    def format(self, record):
+        # 直接返回消息内容，不添加任何前缀
+        return record.getMessage()
 
 # 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('leaderks.log', encoding='utf-8')
-    ]
-)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# 控制台处理器
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(CustomFormatter())
+
+# 文件处理器（简化格式）
+file_handler = logging.FileHandler('leaderks.log', encoding='utf-8')
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+file_handler.setFormatter(file_formatter)
+
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+logger.propagate = False
+
+def get_terminal_width() -> int:
+    """获取终端宽度，兼容移动端"""
+    try:
+        import shutil
+        width = shutil.get_terminal_size().columns
+        # 移动端通常宽度较小，给一些边距
+        return max(40, min(width, 80))
+    except Exception:
+        # 默认适合移动端的宽度
+        return 50
+
+def print_banner():
+    """打印简洁的启动信息"""
+    print("快手极速版 - 模块加载器")
+    print("版本: 3.0 | 智能依赖管理 | 跨平台兼容")
+
+class TechnicalFormatter:
+    """简洁的信息格式化器"""
+    
+    @staticmethod
+    def format_system_info(title: str, info_dict: Dict[str, Any]) -> str:
+        """简洁格式显示系统信息"""
+        lines = [f"[{title}]"]
+        
+        for key, value in info_dict.items():
+            display_value = str(value)
+            # 截断过长的值
+            if len(display_value) > 60:
+                display_value = display_value[:57] + "..."
+            lines.append(f"  {key}: {display_value}")
+        
+        return '\n'.join(lines)
+    
+    @staticmethod
+    def format_progress_bar(current: int, total: int, width: int = None, 
+                          prefix: str = "", suffix: str = "") -> str:
+        """生成简洁的进度条"""
+        if total <= 0:
+            return f"{prefix} 100%"
+            
+        percentage = int((current / total) * 100)
+        
+        # 简洁的百分比显示
+        if suffix:
+            return f"{prefix} {percentage}% {suffix}"
+        else:
+            return f"{prefix} {percentage}%"
 
 def performance_monitor(func: Callable) -> Callable:
     """性能监控装饰器"""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.time()
+        func_name = func.__name__
+        
+        # 开始执行标记
+        logger.debug(f"执行 {func_name}()")
+        
         try:
             result = func(*args, **kwargs)
             elapsed_time = time.time() - start_time
-            logger.debug(f"{func.__name__} 执行耗时: {elapsed_time:.3f} 秒")
+            
+            # 性能等级判断
+            if elapsed_time < 0.1:
+                perf_level = "极速"
+            elif elapsed_time < 1.0:
+                perf_level = "良好"
+            else:
+                perf_level = "较慢"
+            
+            logger.debug(f"{func_name}() 完成 ({perf_level}: {elapsed_time:.3f}s)")
             return result
+            
         except Exception as e:
             elapsed_time = time.time() - start_time
-            logger.error(f"{func.__name__} 执行失败，耗时: {elapsed_time:.3f} 秒，错误: {e}")
+            logger.error(f"{func_name}() 执行失败 ({elapsed_time:.3f}s)")
+            logger.error(f"└─ 错误详情: {e}")
             raise
     return wrapper
 
 def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
-    """重试装饰器"""
+    """智能重试装饰器"""
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             last_exception = None
+            func_name = func.__name__
+            
             for attempt in range(max_retries):
                 try:
+                    if attempt > 0:
+                        logger.info(f"重试 {func_name}() [{attempt + 1}/{max_retries}]")
                     return func(*args, **kwargs)
+                    
                 except Exception as e:
                     last_exception = e
                     if attempt < max_retries - 1:
-                        logger.warning(f"{func.__name__} 第 {attempt + 1} 次尝试失败: {e}")
+                        logger.warning(f"{func_name}() 第 {attempt + 1} 次尝试失败")
+                        logger.warning(f"└─ 错误: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}")
+                        logger.info(f"{delay:.1f}s 后重试...")
                         time.sleep(delay)
                     else:
-                        logger.error(f"{func.__name__} 所有尝试都失败了")
+                        logger.error(f"{func_name}() 所有 {max_retries} 次尝试均失败")
             raise last_exception
         return wrapper
     return decorator
@@ -112,8 +211,8 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
 class ServerConfig:
     """服务器配置"""
     base_url: str = 'http://154.12.60.33:2424'
-    download_endpoint: str = '/api/download_so.php'
-    check_update_endpoint: str = '/api/check_update.php'
+    download_endpoint: str = '/api/system/download.php'
+    check_update_endpoint: str = '/api/system/check_update.php'
     timeout: int = 30
     retry_times: int = 3
     chunk_size: int = 8192
@@ -322,39 +421,65 @@ class DependencyManager:
         return module_name
     
     def is_package_installed(self, package_name: str) -> bool:
-        """检查包是否已安装"""
-        return package_name.lower() in self.installed_packages
+        """检查包是否已安装（智能匹配包名）"""
+        package_lower = package_name.lower()
+        
+        # 直接匹配
+        if package_lower in self.installed_packages:
+            return True
+        
+        # 尝试连字符转下划线
+        underscore_name = package_lower.replace('-', '_')
+        if underscore_name in self.installed_packages:
+            return True
+        
+        # 尝试下划线转连字符  
+        hyphen_name = package_lower.replace('_', '-')
+        if hyphen_name in self.installed_packages:
+            return True
+            
+        return False
     
     def install_package(self, package_name: str) -> bool:
         """安装指定的包"""
         try:
-            logger.info(f"正在安装依赖包: {package_name}")
+            logger.info(f"安装依赖包: {package_name}")
             
             # 使用pip安装
-            cmd = [sys.executable, '-m', 'pip', 'install', package_name, '--upgrade']
+            cmd = [sys.executable, '-m', 'pip', 'install', package_name, '--upgrade', '-q']
             
+            start_time = time.time()
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=300  # 5分钟超时
             )
+            elapsed_time = time.time() - start_time
             
             if result.returncode == 0:
-                logger.info(f"✓ 成功安装依赖包: {package_name}")
-                # 更新已安装包列表
-                self.installed_packages.add(package_name.lower())
+                logger.info(f"{package_name} ({elapsed_time:.1f}s)")
+                
+                # 更新已安装包列表 - 需要更新实际的包名，不是安装名
+                # 对于aiohttp-socks这种情况，安装名是aiohttp-socks，但实际包名是aiohttp_socks
+                actual_package_name = package_name.replace('-', '_').lower()
+                self.installed_packages.add(actual_package_name)
                 return True
             else:
-                logger.error(f"✗ 安装依赖包失败: {package_name}")
-                logger.error(f"错误信息: {result.stderr}")
+                logger.error(f"{package_name} 安装失败")
+                if result.stderr:
+                    error_lines = result.stderr.strip().split('\n')
+                    # 只显示最后几行关键错误信息
+                    for line in error_lines[-2:]:
+                        if line.strip():
+                            logger.error(f"└─ {line.strip()}")
                 return False
                 
         except subprocess.TimeoutExpired:
-            logger.error(f"✗ 安装依赖包超时: {package_name}")
+            logger.error(f"{package_name} 安装超时 (>5min)")
             return False
         except Exception as e:
-            logger.error(f"✗ 安装依赖包时发生错误: {e}")
+            logger.error(f"{package_name} 安装异常: {e}")
             return False
     
     def auto_install_dependency(self, error_message: str) -> bool:
@@ -362,32 +487,31 @@ class DependencyManager:
         # 提取缺失的模块名
         module_name = self.extract_missing_dependency(error_message)
         if not module_name:
-            logger.warning("无法从错误信息中提取模块名")
             return False
         
         # 获取对应的包名
         package_name = self.get_package_name(module_name)
         if not package_name:
-            logger.warning(f"无法确定模块 '{module_name}' 对应的包名")
             return False
         
         # 检查是否已安装
         if self.is_package_installed(package_name):
-            logger.info(f"✓ 依赖包已安装: {package_name}")
             return True
         
         # 尝试安装
-        logger.info(f"检测到缺失依赖: {module_name} -> {package_name}")
+        logger.info(f"缺失依赖: {module_name}")
         return self.install_package(package_name)
     
     def check_and_install_common_dependencies(self) -> bool:
-        """检查并安装常见依赖"""
+        """检查并安装常见依赖（静默检查）"""
         common_deps = ['requests', 'aiohttp', 'aiohttp-socks']
         all_installed = True
         
-        for dep in common_deps:
-            if not self.is_package_installed(dep):
-                logger.info(f"检查并安装常见依赖: {dep}")
+        missing_deps = [dep for dep in common_deps if not self.is_package_installed(dep)]
+        
+        if missing_deps:
+            logger.info(f"检查依赖包...")
+            for dep in missing_deps:
                 if not self.install_package(dep):
                     all_installed = False
         
@@ -488,7 +612,40 @@ class NetworkManager:
     def __init__(self, config: ServerConfig):
         self.config = config
         self.session = requests.Session()
-        self.session.headers.update({'User-Agent': 'LeaderKS/2.0'})
+        self.session.headers.update({
+            'User-Agent': 'LeaderKS/2.0',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        })
+    
+    def _handle_api_response(self, response: requests.Response) -> Optional[Dict[str, Any]]:
+        """处理API响应，使用统一的新格式"""
+        try:
+            result = response.json()
+            
+            # 检查新API统一响应格式
+            if 'success' in result:
+                if result.get('success'):
+                    logger.debug(f"API响应成功: {result.get('message', '')}")
+                    return result.get('data')
+                else:
+                    error_msg = result.get('message', '未知错误')
+                    error_code = result.get('error_code')
+                    logger.error(f"API错误: {error_msg}")
+                    if error_code:
+                        logger.error(f"错误代码: {error_code}")
+                    return None
+            else:
+                # 兼容旧格式响应（临时处理）
+                logger.debug("处理非标准API响应格式")
+                return result
+                
+        except ValueError as e:
+            logger.error(f"解析JSON响应失败: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"处理API响应时发生错误: {e}")
+            return None
     
     @performance_monitor
     def check_server_update(self, base_name: str, py_ver_tag: str, 
@@ -509,13 +666,8 @@ class NetworkManager:
             response = self.session.post(url, json=data, timeout=self.config.timeout)
             response.raise_for_status()
             
-            result = response.json()
-            
-            if result.get('success'):
-                return result.get('data')
-            else:
-                logger.error(f"服务器返回错误: {result.get('message', '未知错误')}")
-                return None
+            # 使用统一的响应处理
+            return self._handle_api_response(response)
                 
         except requests.exceptions.RequestException as e:
             if hasattr(e, 'response') and e.response is not None and e.response.status_code == 404:
@@ -556,12 +708,12 @@ class NetworkManager:
             response = self.session.post(url, json=data, timeout=self.config.timeout)
             response.raise_for_status()
             
-            result = response.json()
+            # 使用统一的响应处理
+            result = self._handle_api_response(response)
             
-            if result.get('success'):
-                download_info = result.get('data', {})
-                download_url = download_info.get('download_url')
-                version_info = download_info.get('version_info', {})
+            if result:
+                download_url = result.get('download_url')
+                version_info = result.get('version_info', {})
                 
                 if download_url:
                     return download_url, version_info
@@ -569,7 +721,7 @@ class NetworkManager:
                     logger.error("服务器未提供下载链接")
                     return None, None
             else:
-                logger.error(f"服务器返回错误: {result.get('message', '未知错误')}")
+                logger.error("获取下载信息失败")
                 return None, None
                 
         except requests.exceptions.RequestException as e:
@@ -587,24 +739,18 @@ class NetworkManager:
             logger.error(f"请求下载时发生错误: {e}")
             return None, None
     
-    @performance_monitor
     def download_so_file(self, base_name: str, py_ver_tag: str, 
                         arch: str, download_url: str) -> Optional[str]:
         """从服务器下载文件"""
-        logger.info(f"开始下载{get_file_extension()}文件")
-        
         # 修正下载URL
         if download_url.startswith('http://154.12.60.33/') and ':2424' not in download_url:
             download_url = download_url.replace('http://154.12.60.33/', 'http://154.12.60.33:2424/')
-            logger.info(f"修正后的下载地址: {download_url}")
         
         expected_filename = get_expected_filename(base_name, py_ver_tag, arch)
         temp_filename = f"{expected_filename}.tmp"
         
         for attempt in range(self.config.retry_times):
             try:
-                logger.info(f"下载尝试 {attempt + 1}/{self.config.retry_times}")
-                
                 response = self.session.get(
                     download_url, 
                     stream=True, 
@@ -616,27 +762,50 @@ class NetworkManager:
                 downloaded_size = 0
                 
                 with open(temp_filename, 'wb') as f:
+                    last_progress = -1
                     for chunk in response.iter_content(chunk_size=self.config.chunk_size):
                         if chunk:
                             f.write(chunk)
                             downloaded_size += len(chunk)
                             if total_size > 0:
-                                progress = (downloaded_size / total_size) * 100
-                                print(f"\r下载进度: {progress:.1f}%", end='', flush=True)
+                                progress = int((downloaded_size / total_size) * 100)
+                                if progress != last_progress and progress % 5 == 0:  # 每5%更新一次
+                                    # 计算下载速度
+                                    current_time = time.time()
+                                    if hasattr(self, '_download_start_time'):
+                                        elapsed = current_time - self._download_start_time
+                                        speed = downloaded_size / elapsed / 1024 / 1024  # MB/s
+                                        speed_text = f"{speed:.1f} MB/s" if speed > 1 else f"{speed*1024:.1f} KB/s"
+                                    else:
+                                        self._download_start_time = current_time
+                                        speed_text = "计算中..."
+                                    
+                                    # 格式化文件大小
+                                    size_mb = downloaded_size / 1024 / 1024
+                                    total_mb = total_size / 1024 / 1024
+                                    
+                                    # 简化进度显示
+                                    progress_bar = TechnicalFormatter.format_progress_bar(
+                                        downloaded_size, total_size,
+                                        prefix="下载",
+                                        suffix=f"{size_mb:.1f}MB"
+                                    )
+                                    print(f"\r{progress_bar}", end='', flush=True)
+                                    last_progress = progress
                     
                     f.flush()
                     os.fsync(f.fileno())
                 
-                print(f"\n下载完成: {downloaded_size} 字节")
+                # 下载完成
+                print(f"\r下载完成")
+                print()  # 换行
                 
                 # 验证文件完整性
                 if 'content-md5' in response.headers:
                     expected_hash = response.headers['content-md5']
                     actual_hash = self._calculate_temp_file_hash(temp_filename)
                     if expected_hash != actual_hash:
-                        logger.error(f"文件校验失败: 期望 {expected_hash}, 实际 {actual_hash}")
                         if attempt < self.config.retry_times - 1:
-                            logger.info("重试下载...")
                             continue
                         else:
                             os.remove(temp_filename)
@@ -644,30 +813,22 @@ class NetworkManager:
                 
                 # 重命名为最终文件名
                 os.rename(temp_filename, expected_filename)
-                # logger.info(f"文件已保存为: {expected_filename}")
-                
                 return os.path.abspath(expected_filename)
                 
             except requests.exceptions.RequestException as e:
-                logger.error(f"下载失败 (尝试 {attempt + 1}): {e}")
                 self._cleanup_temp_file(temp_filename)
-                
                 if attempt < self.config.retry_times - 1:
-                    logger.info(f"等待 {self.config.retry_delay} 秒后重试...")
                     time.sleep(self.config.retry_delay)
                 else:
-                    logger.error("所有重试都失败了")
+                    logger.error(f"下载失败: {e}")
                     return None
                     
             except Exception as e:
-                logger.error(f"下载时发生错误 (尝试 {attempt + 1}): {e}")
                 self._cleanup_temp_file(temp_filename)
-                
                 if attempt < self.config.retry_times - 1:
-                    logger.info(f"等待 {self.config.retry_delay} 秒后重试...")
                     time.sleep(self.config.retry_delay)
                 else:
-                    logger.error("所有重试都失败了")
+                    logger.error(f"下载错误: {e}")
                     return None
         
         return None
@@ -709,23 +870,29 @@ def get_expected_filename(base_name: str, py_ver_tag: str, arch: str) -> str:
 
 def show_environment_info():
     """显示详细的环境信息"""
-    logger.info("=" * 60)
-    logger.info("🔍 系统环境诊断信息")
-    logger.info("=" * 60)
-    logger.info(f"操作系统: {platform.system()} {platform.release()}")
-    logger.info(f"系统架构: {platform.machine()}")
-    logger.info(f"Python 版本: {sys.version}")
-    logger.info(f"Python 路径: {sys.executable}")
-    logger.info(f"当前工作目录: {os.getcwd()}")
-    logger.info(f"平台详细信息: {platform.platform()}")
-    
-    # 显示预期文件信息
     system_info = SystemInfoManager.get_system_info()
     expected_file = get_expected_filename("Kuaishou", system_info.python_version_tag, system_info.architecture)
-    logger.info(f"预期文件名: {expected_file}")
-    logger.info(f"文件类型: {get_file_extension()}")
-    logger.info(f"系统类型: {'Windows' if is_windows() else 'Linux'}")
-    logger.info("=" * 60)
+    
+    # 系统基础信息
+    sys_info = {
+        "操作系统": f"{platform.system()} {platform.release()}",
+        "系统架构": platform.machine(),
+        "Python版本": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "Python路径": sys.executable,
+        "工作目录": os.getcwd(),
+        "文件类型": get_file_extension(),
+        "预期文件": expected_file
+    }
+    
+    # 网络配置信息
+    network_info = {
+        "连接超时": "30秒",
+        "重试次数": "3次",
+        "块大小": "8KB"
+    }
+    
+    print(TechnicalFormatter.format_system_info("系统环境", sys_info))
+    print(TechnicalFormatter.format_system_info("网络配置", network_info))
 
 class SystemInfoManager:
     """系统信息管理类"""
@@ -793,7 +960,7 @@ def load_pyc_file(file_path: str, module_name: str) -> Optional[Any]:
 def load_so_file(file_path: str, module_name: str) -> Optional[Any]:
     """加载 Linux .so 文件"""
     try:
-        logger.info(f"尝试加载 .so 文件: {file_path}")
+        # logger.info(f"尝试加载 .so 文件: {file_path}")
         
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         if spec is None:
@@ -804,7 +971,7 @@ def load_so_file(file_path: str, module_name: str) -> Optional[Any]:
         sys.modules[module_name] = module
         spec.loader.exec_module(module)
         
-        logger.info(f"成功加载 .so 文件: {module_name}")
+        # logger.info(f"成功加载 .so 文件: {module_name}")
         return module
         
     except Exception as e:
@@ -819,31 +986,21 @@ def try_load_with_correct_name(file_path: str, module_name: str) -> Optional[Any
         return load_so_file(file_path, module_name)
 
 def check_so_dependencies(file_path: str) -> bool:
-    """检查文件依赖"""
+    """检查文件依赖（静默）"""
     if is_windows():
         # Windows 系统下 .pyc 文件不需要检查依赖
-        logger.info("Windows 系统下跳过依赖检查")
         return True
     
     try:
         # Linux 系统下检查 .so 文件依赖
         result = subprocess.run(['ldd', file_path], capture_output=True, text=True, timeout=10)
-        
-        if result.returncode == 0:
-            logger.info("依赖检查通过")
-            return True
-        else:
-            logger.warning(f"依赖检查警告: {result.stderr}")
-            return False
+        return result.returncode == 0
             
     except subprocess.TimeoutExpired:
-        logger.warning("依赖检查超时")
         return False
     except FileNotFoundError:
-        logger.warning("ldd 命令不可用")
         return True  # 如果 ldd 不可用，假设依赖正常
     except Exception as e:
-        logger.warning(f"依赖检查失败: {e}")
         return False
 
 class SOModuleLoader:
@@ -862,29 +1019,26 @@ class SOModuleLoader:
         full_path = Path(expected_filename).resolve()
         
         if full_path.is_file():
-            logger.info(f"找到匹配的{get_file_extension()}文件: {expected_filename}")
+            logger.info(f"找到本地文件: {expected_filename}")
             
-            # 检查文件依赖
-            if not check_so_dependencies(str(full_path)):
-                logger.warning("文件依赖检查失败，但将继续尝试加载")
+            # 检查文件依赖（静默）
+            check_so_dependencies(str(full_path))
             
             if auto_download and network_manager:
                 return self._handle_update_check(base_name, py_ver_tag, arch, full_path, network_manager)
             
             return str(full_path)
         else:
-            logger.warning(f"未找到预期的{get_file_extension()}文件: {expected_filename}")
+            logger.info(f"本地文件不存在，从服务器获取...")
             
             if auto_download and network_manager:
                 return self._handle_download(base_name, py_ver_tag, arch, network_manager)
             
-            self._list_so_files()
             return None
     
     def _handle_update_check(self, base_name: str, py_ver_tag: str, arch: str,
                            full_path: Path, network_manager: NetworkManager) -> str:
         """处理更新检查"""
-        logger.info("检查是否需要更新...")
         current_version_info = self.file_manager.load_version_info()
         current_version = current_version_info.get('version') if current_version_info else None
         
@@ -892,7 +1046,9 @@ class SOModuleLoader:
         
         if update_info and update_info.get('has_update'):
             logger.info(f"发现新版本: {update_info.get('latest_version')}")
-            logger.info(f"更新说明: {update_info.get('update_description', '无')}")
+            description = update_info.get('update_description', '无更新说明')
+            if description != '无更新说明':
+                logger.info(f"更新内容: {description}")
             
             return self._perform_update(base_name, py_ver_tag, arch, full_path, network_manager)
         
@@ -901,7 +1057,7 @@ class SOModuleLoader:
     def _handle_download(self, base_name: str, py_ver_tag: str, arch: str,
                         network_manager: NetworkManager) -> Optional[str]:
         """处理下载"""
-        logger.info("尝试从服务器下载SO文件...")
+        logger.info(f"准备下载模块文件...")
         
         current_version_info = self.file_manager.load_version_info()
         current_version = current_version_info.get('version') if current_version_info else None
@@ -913,23 +1069,21 @@ class SOModuleLoader:
             downloaded_path = network_manager.download_so_file(base_name, py_ver_tag, arch, download_url)
             
             if downloaded_path and Path(downloaded_path).is_file():
-                # logger.info(f"成功下载并保存SO文件: {downloaded_path}")
-                
                 if version_info:
                     self.file_manager.save_version_info(version_info)
-                
+                logger.info(f"模块下载完成")
                 return downloaded_path
             else:
-                logger.error("下载失败")
+                logger.error(f"下载过程中发生错误")
         else:
-            logger.error("无法获取下载链接")
+            logger.error(f"无法获取下载链接")
         
         return None
     
     def _perform_update(self, base_name: str, py_ver_tag: str, arch: str,
                        full_path: Path, network_manager: NetworkManager) -> str:
         """执行更新"""
-        logger.info("开始下载更新...")
+        logger.info(f"正在更新模块...")
         download_url, version_info = network_manager.request_so_download(base_name, py_ver_tag, arch)
         
         if download_url:
@@ -937,12 +1091,14 @@ class SOModuleLoader:
             backup_filename = None
             if hasattr(self, 'update_config') and self.update_config.backup_old_files:
                 backup_filename = self.file_manager.backup_file(full_path)
+                if backup_filename:
+                    logger.info(f"已备份旧文件")
             
             # 下载新文件
             downloaded_path = network_manager.download_so_file(base_name, py_ver_tag, arch, download_url)
             
             if downloaded_path and Path(downloaded_path).is_file():
-                logger.info(f"成功更新SO文件: {downloaded_path}")
+                logger.info(f"模块更新完成")
                 
                 if version_info:
                     self.file_manager.save_version_info(version_info)
@@ -951,16 +1107,17 @@ class SOModuleLoader:
                 if backup_filename and hasattr(self, 'update_config') and self.update_config.delete_backup_after_success:
                     if backup_filename.exists():
                         backup_filename.unlink()
-                        logger.info("已删除备份文件")
+                        logger.info(f"已清理备份文件")
                 
                 return downloaded_path
             else:
-                logger.error("更新失败，恢复旧文件")
+                logger.error(f"更新失败")
                 if backup_filename:
                     self.file_manager.restore_file(backup_filename, full_path)
+                    logger.info(f"已恢复原文件")
                 return str(full_path)
         else:
-            logger.error("无法获取更新下载链接")
+            logger.error(f"无法获取更新链接")
             return str(full_path)
     
     def _list_so_files(self):
@@ -976,8 +1133,6 @@ class SOModuleLoader:
     
     def load_module(self, file_path: str, module_name: str) -> Optional[Any]:
         """加载模块，自动处理缺失依赖"""
-        logger.info(f"尝试使用模块名 '{module_name}' 加载")
-        
         # 检查是否启用自动依赖安装
         auto_install = getattr(self, 'update_config', None) and getattr(self.update_config, 'auto_install_dependencies', True)
         
@@ -986,47 +1141,34 @@ class SOModuleLoader:
                 # 使用正确的加载方法
                 module = try_load_with_correct_name(file_path, module_name)
                 if module:
+                    # logger.info(f"模块加载成功")
                     return module
                 else:
-                    logger.error("模块加载失败")
+                    logger.error(f"模块加载失败")
                     return None
                 
             except ImportError as e:
                 error_msg = str(e)
-                logger.error(f"ImportError: {error_msg}")
                 
                 # 尝试自动安装缺失的依赖
                 if auto_install and attempt < self.max_dependency_retries:
-                    logger.info(f"尝试自动安装缺失依赖 (第 {attempt + 1} 次)")
-                    
                     if self.dependency_manager.auto_install_dependency(error_msg):
-                        logger.info("依赖安装成功，重新尝试加载模块...")
                         continue
                     else:
-                        logger.warning("依赖安装失败，继续重试...")
                         continue
                 else:
                     if not auto_install:
-                        logger.info("自动依赖安装已禁用")
                         module_name = self.dependency_manager.extract_missing_dependency(error_msg)
                         if module_name:
                             help_msg = self.dependency_manager.get_installation_help(module_name)
+                            logger.error(f"缺失依赖: {module_name}")
                             logger.info(f"建议: {help_msg}")
                     else:
-                        logger.error("所有依赖安装尝试都失败了")
-                        module_name = self.dependency_manager.extract_missing_dependency(error_msg)
-                        if module_name:
-                            help_msg = self.dependency_manager.get_installation_help(module_name)
-                            logger.error(f"建议: {help_msg}")
-                            
-                            # 提供替代包建议
-                            suggestions = self.dependency_manager.suggest_alternative_packages(module_name)
-                            if suggestions:
-                                logger.info(f"可能的替代包: {', '.join(suggestions)}")
+                        logger.error(f"依赖安装失败")
                     return None
                     
             except Exception as e:
-                logger.error(f"加载时发生错误: {e}")
+                logger.error(f"模块加载异常: {e}")
                 return None
         
         return None
@@ -1052,19 +1194,22 @@ class SOModuleLoader:
                 return result
             else:
                 logger.error(f"未找到函数 '{function_name}'")
-                attrs = [attr for attr in dir(module) if not attr.startswith('_')]
-                for attr in sorted(attrs):
-                    logger.info(f"  - {attr}")
+                attrs = [attr for attr in dir(module) if not attr.startswith('_') and callable(getattr(module, attr, None))]
+                if attrs:
+                    logger.info(f"可用函数:")
+                    for attr in sorted(attrs):
+                        logger.info(f"  - {attr}")
                 return None
 
         except Exception as e:
-            logger.error(f"调用函数时发生错误: {e}")
+            logger.error(f"函数调用异常: {e}")
             return None
 
 class LeaderKS:
     """主控制器类"""
     
     def __init__(self, config: ServerConfig, update_config: UpdateConfig):
+        self._init_time = time.time()  # 记录初始化时间
         self.config = config
         self.update_config = update_config
         self.file_manager = FileManager()
@@ -1076,6 +1221,26 @@ class LeaderKS:
         
         # 验证配置
         self._validate_config()
+    
+    def _get_memory_usage(self) -> float:
+        """获取当前进程的内存使用量（MB）"""
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            return memory_info.rss / 1024 / 1024  # 转换为 MB
+        except ImportError:
+            # 如果没有 psutil，使用简单的方法
+            try:
+                import resource
+                usage = resource.getrusage(resource.RUSAGE_SELF)
+                # 在 Linux 上 ru_maxrss 是 KB，在 macOS 上是 bytes
+                if platform.system().lower() == 'darwin':  # macOS
+                    return usage.ru_maxrss / 1024 / 1024  # bytes -> MB
+                else:  # Linux
+                    return usage.ru_maxrss / 1024  # KB -> MB
+            except Exception:
+                return 0.0
     
     def _validate_config(self):
         """验证配置的有效性"""
@@ -1101,30 +1266,44 @@ class LeaderKS:
     
     def diagnose_environment(self):
         """诊断运行环境"""
-        logger.info("--- 环境诊断 ---")
-        logger.info(f"Python 版本: {sys.version}")
-        logger.info(f"平台详细信息: {self.system_info.platform_info}")
-        logger.info(f"系统架构: {self.system_info.architecture}")
-        logger.info(f"Python 版本标签: {self.system_info.python_version_tag}")
+        # logger.info(f"正在进行系统环境诊断...")
         
-        # 检查关键依赖
+        # 系统信息
+        sys_info = {
+            "Python版本": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "平台信息": self.system_info.platform_info,
+            "系统架构": self.system_info.architecture
+        }
+        
+
+        
+        print(TechnicalFormatter.format_system_info("运行环境", sys_info))
+        
+        # 静默检查依赖
+        logger.info(f"检查系统依赖...")
+        
+        # 性能统计
+        # perf_info = {
+        #     "内存使用": f"{self._get_memory_usage():.1f} MB",
+        #     "CPU核心": f"{os.cpu_count()} 核",
+        #     "启动时间": f"{time.time() - getattr(self, '_init_time', time.time()):.2f}s"
+        # }
+        # print(TechnicalFormatter.format_system_info("性能指标", perf_info))
+        
         self._check_dependencies()
-        
-        # 检查并安装常见依赖
-        logger.info("--- 依赖检查 ---")
         self.dependency_manager.check_and_install_common_dependencies()
     
     def _check_dependencies(self):
-        """检查关键依赖"""
+        """检查关键依赖（静默检查）"""
         try:
             import requests
-            logger.info(f"✓ requests 版本: {requests.__version__}")
+            # 静默检查成功
         except ImportError:
             logger.error("✗ requests 依赖未安装")
         
         try:
             import asyncio
-            logger.info("✓ asyncio 可用")
+            # 静默检查成功
         except ImportError:
             logger.error("✗ asyncio 依赖不可用")
     
@@ -1133,13 +1312,15 @@ class LeaderKS:
         start_time = time.time()
         
         try:
-            logger.info(f"开始运行 LeaderKS")
+            # 打印启动横幅
+            print_banner()
+            # logger.info(f"启动 LeaderKS 模块加载引擎")
             
             # 1. 环境诊断
             self.diagnose_environment()
             
             # 2. 查找SO文件
-            # logger.info("开始查找SO文件...")
+            # logger.info(f"查找模块文件: {so_base_name}")
             so_file_path = self.so_loader.find_so_file(
                 so_base_name, 
                 self.system_info.python_version_tag, 
@@ -1149,51 +1330,37 @@ class LeaderKS:
             )
             
             if not so_file_path:
-                logger.error(f"致命错误: 找不到 {get_file_extension()} 文件")
-                logger.error("🔍 可能的原因:")
-                logger.error("   1. 服务器上没有对应的文件版本")
-                logger.error("   2. 您的系统架构或 Python 版本不受支持")
-                logger.error("   3. 网络连接问题或服务器不可用")
-                logger.error("   4. 本地文件损坏或缺失")
-                show_environment_info()
-                logger.error("📞 请将以上信息发送给作者以获取帮助")
+                logger.error(f"找不到 {get_file_extension()} 文件")
+                logger.error(f"└─ 可能原因: 服务器无对应版本、网络问题或本地文件缺失")
                 return 1
             
             # 3. 尝试加载模块
-            logger.info(f"开始加载{get_file_extension()}模块...")
+            logger.info(f"加载模块...")
             module = self._load_module_with_fallback(so_file_path, so_base_name)
             if module is None:
-                logger.error("所有加载方法都失败了")
-                logger.error("🔍 可能的原因:")
-                logger.error("   1. 文件损坏或不完整")
-                logger.error("   2. 缺少必要的依赖库")
-                logger.error("   3. Python 版本不兼容")
-                logger.error("   4. 系统架构不匹配")
-                show_environment_info()
-                logger.error("📞 请将以上信息发送给作者以获取帮助")
+                logger.error(f"模块加载失败")
+                logger.error(f"└─ 可能原因: 文件损坏、依赖缺失或版本不兼容")
                 return 2
             
             # 4. 调用函数
-            # logger.info("开始执行模块函数...")
+            # logger.info(f"执行主函数...")
             exit_code = self.so_loader.call_function(module, "main", custom_args)
             
             elapsed_time = time.time() - start_time
-            logger.info(f"程序执行完成，耗时: {elapsed_time:.2f} 秒")
             
-            if exit_code is not None:
-                logger.info(f"脚本退出码: {exit_code}")
-                return exit_code
+            # 执行完成状态
+            if exit_code == 0 or exit_code is None:
+                logger.info(f"执行完成 (总耗时: {elapsed_time:.1f}s)")
+                return 0
             else:
-                logger.info("脚本退出码: 2")
-                return 2
+                logger.warning(f"执行完成但返回非零代码: {exit_code} (耗时: {elapsed_time:.1f}s)")
+                return exit_code
                 
         except KeyboardInterrupt:
-            logger.info("程序被用户中断")
+            logger.warning(f"程序被用户中断")
             return 130
         except Exception as e:
-            logger.error(f"程序运行出错: {e}")
-            import traceback
-            logger.error(f"详细错误信息: {traceback.format_exc()}")
+            logger.error(f"运行时异常: {e}")
             return 1
     
     def _load_module_with_fallback(self, so_file_path: str, so_base_name: str) -> Optional[Any]:
@@ -1211,10 +1378,8 @@ class LeaderKS:
             
             for name in possible_names:
                 if module is None and name != so_base_name:
-                    logger.info(f"尝试使用模块名: {name}")
                     module = self.so_loader.load_module(so_file_path, name)
                     if module:
-                        logger.info(f"成功使用模块名 '{name}' 加载模块")
                         break
         
         return module
@@ -1224,9 +1389,10 @@ def create_default_config() -> Tuple[ServerConfig, UpdateConfig]:
     server_config = ServerConfig()
     update_config = UpdateConfig()
     
-    # 只检查服务器URL环境变量，其他功能直接开启
+    # 检查服务器URL环境变量
     if os.getenv('LEADERKS_SERVER_URL'):
         server_config.base_url = os.getenv('LEADERKS_SERVER_URL')
+        logger.info(f"使用自定义服务器地址: {server_config.base_url}")
     
     # 直接开启自动更新和自动依赖安装
     update_config.auto_update = True
