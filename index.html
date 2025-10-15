@@ -742,7 +742,7 @@
                                 <el-input-number v-model="config.COIN_THRESHOLD" :min="0" />
                             </el-form-item>
                             <el-form-item label="广告轮数">
-                                <el-input-number v-model="config.AD_CYCLES" :min="1" :max="9999" />
+                                <el-input-number v-model="config.AD_CYCLES" :min="1" :max="9999" placeholder="设置每次广告观看轮数" />
                             </el-form-item>
                             
                             <!-- 延迟配置折叠面板 -->
@@ -1028,7 +1028,7 @@
                         WITHDRAW_HOUR: null,
                         WITHDRAW_AMOUNT: null,
                         COIN_THRESHOLD: null,
-                        AD_CYCLES: 10,
+                        AD_CYCLES: null,
                         delay_config: {
                             'default': {'min': 20000, 'max': 30000},
                             'taskInterval': {'min': 10000, 'max': 20000},

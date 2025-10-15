@@ -75,7 +75,8 @@ def create_default_files():
             "MAX_CONCURRENCY": 5,
             "WITHDRAW_HOUR": None,
             "WITHDRAW_AMOUNT": None,
-            "COIN_THRESHOLD": None
+            "COIN_THRESHOLD": None,
+            "AD_CYCLES": None
         }
         with open('config.json', 'w', encoding='utf-8') as f:
             import json
